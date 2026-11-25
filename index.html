@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kalender Bleach | Robin</title>
+  <meta name="description" content="Kalender bulanan bertema Bleach. Catat acara dan tugas di tiap tanggal, tersimpan di browser.">
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    html { overflow-x: hidden; background: #3b1d5e; }
+    :root { --accent: #ff6a00; --spark: #ffcf8a; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', Arial, sans-serif; min-height: 100vh;
+      background: #c2410c;
+      background: linear-gradient(to top,#ff7b3d,#c2410c 40%,#3b1d5e 100%) fixed;
+      color: #f5f5f5; overflow-x: hidden;
+    }
+    button, input, select { font-family: inherit; color: inherit; }
+
+    /* ===== LATAR ANIME ===== */
+    #scene { position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; z-index: 0; overflow: hidden; }
+    .layer { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 1.2s ease; }
+    .layer.aktif { opacity: 1; }
+    .kanji { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 45vw; font-weight: 900; color: #fff; opacity: 0.06; white-space: nowrap; }
+    .orb { position: absolute; top: 9%; right: 10%; width: 22vw; height: 22vw; max-width: 260px; max-height: 260px; min-width: 120px; min-height: 120px; border-radius: 50%; }
+    .city { position: absolute; bottom: 0; left: 0; width: 100%; height: 36vh; }
+    #sparks { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+    .spark { position: absolute; bottom: -10px; border-radius: 50%; background: var(--spark); box-shadow: 0 0 8px var(--spark); opacity: 0; animation: naik linear infinite; }
+    @keyframes naik {
+      0%   { transform: translateY(0) translateX(0); opacity: 0; }
+      10%  { opacity: 0.9; }
+      100% { transform: translateY(-105vh) translateX(40px); opacity: 0; }
+    }
+
+    /* ===== HALAMAN ===== */
+    .wrap { position: relative; z-index: 1; max-width: 1040px; margin: 0 auto; padding: 30px 18px 24px; }
+    .btn {
+      font-family: 'Anton', Impact, sans-serif; font-size: 16px; letter-spacing: 2px; text-transform: uppercase; text-decoration: none;
+      cursor: pointer; border: 3px solid #f5f5f5; background: rgba(0,0,0,0.4); color: #f5f5f5; padding: 10px 18px; display: inline-block;
+      transition: background 0.2s, color 0.2s, border-color 1s; text-align: center;
+    }
+    .btn:hover { background: #f5f5f5; color: #000; }
+    .btn.main { background: var(--accent); border-color: var(--accent); color: #000; }
+    .btn.main:hover { background: #fff; border-color: #fff; }
+    .kembali { margin-bottom: 14px; font-size: 15px; padding: 8px 16px; }
+    .lokasi { font-family: 'Anton', Impact, sans-serif; letter-spacing: 3px; font-size: 14px; color: var(--accent); text-transform: uppercase; transition: color 1s; min-height: 20px; }
+    h1 {
+      font-family: 'Anton', Impact, sans-serif; font-size: clamp(46px, 10vw, 100px); line-height: 0.95;
+      text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 4px 20px rgba(0,0,0,0.6); margin: 4px 0 10px;
+    }
+    h1 span { color: var(--accent); transition: color 1s; }
+    .bio { max-width: 600px; line-height: 1.7; margin-bottom: 18px; text-shadow: 0 2px 8px rgba(0,0,0,0.8); }
+
+    .utama { display: grid; grid-template-columns: 1.7fr 1fr; gap: 14px; align-items: start; }
+    .kartu { background: rgba(8,8,18,0.86); border-top: 5px solid var(--accent); padding: 16px; transition: border-color 1s; }
+
+    /* ===== KALENDER ===== */
+    .kepala { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+    .kepala .judul { flex: 1; min-width: 150px; font-family: 'Anton', Impact, sans-serif; font-size: 28px; letter-spacing: 3px; text-transform: uppercase; line-height: 1.05; }
+    .kepala .btn { padding: 8px 14px; font-size: 15px; }
+    .ringkas { font-size: 12px; letter-spacing: 1px; opacity: 0.75; margin: -4px 0 12px; }
+    .hari-nama, .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .hari-nama div { text-align: center; font-family: 'Anton', Impact, sans-serif; font-size: 13px; letter-spacing: 2px; opacity: 0.7; padding: 6px 0; }
+    .hari-nama div:nth-child(7), .hari-nama div:nth-child(6) { color: #ff9a9a; opacity: 0.9; }
+    .sel {
+      position: relative; min-height: 76px; padding: 6px 7px; text-align: left; cursor: pointer;
+      background: rgba(255,255,255,0.06); border: 2px solid transparent; transition: background 0.15s, border-color 0.15s;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .sel:hover { background: rgba(255,255,255,0.14); }
+    .sel.luar { opacity: 0.38; }
+    .sel .no { font-family: 'Anton', Impact, sans-serif; font-size: 18px; line-height: 1; }
+    .sel.libur .no, .sel.pekan .no { color: #ff9a9a; }
+    .sel.hariini { border-color: var(--accent); }
+    .sel.hariini .no { background: var(--accent); color: #000; padding: 2px 6px; display: inline-block; align-self: flex-start; }
+    .sel.pilih { background: rgba(255,255,255,0.22); border-color: #fff; }
+    .sel .titik { display: flex; flex-wrap: wrap; gap: 3px; margin-top: auto; }
+    .sel .titik i { width: 7px; height: 7px; border-radius: 50%; display: block; }
+    .sel .titik em { font-style: normal; font-size: 10px; opacity: 0.8; line-height: 7px; }
+    .sel .teks { font-size: 10px; line-height: 1.3; opacity: 0.85; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    .catatan { margin-top: 10px; font-size: 11px; opacity: 0.6; letter-spacing: 0.5px; line-height: 1.5; }
+    .legenda { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px; font-size: 12px; }
+    .legenda span { display: inline-flex; align-items: center; gap: 5px; }
+    .legenda i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+
+    /* ===== PANEL ===== */
+    .samping { display: flex; flex-direction: column; gap: 14px; }
+    .samping h2 { font-family: 'Anton', Impact, sans-serif; font-size: 20px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 4px; }
+    .tgl-label { font-size: 14px; opacity: 0.85; margin-bottom: 8px; }
+    .libur-tag { display: inline-block; background: #ff5a5a; color: #000; font-weight: 600; font-size: 12px; padding: 3px 9px; margin-bottom: 8px; }
+    .daftar { list-style: none; display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+    .daftar li { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: rgba(255,255,255,0.07); border-left: 4px solid var(--kc, #fff); font-size: 14px; }
+    .daftar li.selesai .ju { text-decoration: line-through; opacity: 0.5; }
+    .daftar .ju { flex: 1; overflow-wrap: anywhere; line-height: 1.4; }
+    .daftar .jam { font-size: 12px; opacity: 0.75; white-space: nowrap; }
+    .daftar input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; flex: none; }
+    .daftar button { background: none; border: none; cursor: pointer; opacity: 0.5; font-size: 15px; padding: 2px 6px; }
+    .daftar button:hover { opacity: 1; color: #ff9a9a; }
+    .kosong { font-size: 13px; opacity: 0.65; margin-bottom: 12px; line-height: 1.5; }
+    form { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    form input[type=text] { grid-column: 1 / -1; }
+    form input, form select {
+      padding: 10px 11px; font-size: 14px; background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.3); outline: none; min-width: 0; width: 100%;
+    }
+    form input:focus, form select:focus { border-color: var(--accent); }
+    form input::placeholder { color: rgba(255,255,255,0.5); }
+    form select option { color: #000; }
+    form .btn { grid-column: 1 / -1; }
+    .agenda { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+    .agenda li { display: flex; gap: 10px; align-items: center; padding: 8px 10px; background: rgba(255,255,255,0.07); border-left: 4px solid var(--kc, #fff); cursor: pointer; font-size: 13px; }
+    .agenda li:hover { background: rgba(255,255,255,0.14); }
+    .agenda .rel { font-family: 'Anton', Impact, sans-serif; letter-spacing: 1px; font-size: 12px; min-width: 66px; color: var(--accent); text-transform: uppercase; }
+    .agenda .ju { flex: 1; overflow-wrap: anywhere; }
+    .peringatan { font-size: 12px; background: #ff5a5a; color: #000; padding: 6px 10px; margin-bottom: 10px; display: none; }
+    footer { position: relative; z-index: 1; text-align: center; padding: 10px 0 30px; font-size: 12px; letter-spacing: 2px; opacity: 0.7; }
+
+    @media (max-width: 800px) { .utama { grid-template-columns: 1fr; } }
+    @media (max-width: 560px) {
+      .wrap { padding: 22px 10px 20px; }
+      .kartu { padding: 12px; }
+      .grid, .hari-nama { gap: 3px; }
+      .sel { min-height: 54px; padding: 5px; }
+      .sel .no { font-size: 16px; }
+      .sel .teks { display: none; }
+      .kepala .judul { font-size: 22px; letter-spacing: 2px; }
+    }
+    @media (prefers-reduced-motion: reduce) { .spark { animation: none; } }
+  </style>
+</head>
+<body>
+  <div id="scene"></div>
+  <div id="sparks"></div>
+
+  <main class="wrap">
+    <!-- Ganti alamat di bawah kalau portofolio kamu ada di link lain -->
+    <a class="btn kembali" href="https://muqorobin298-lab.github.io/Robin_Dev/">← Kembali</a>
+    <p class="lokasi" id="lokasi"></p>
+    <h1>Kalender <span>Bleach</span></h1>
+    <p class="bio">Catat acara dan tugasmu di tiap tanggal. Latar anime berganti mengikuti bulan, dan semua catatan tersimpan di browser ini.</p>
+
+    <div class="utama">
+      <section class="kartu" aria-label="Kalender">
+        <div class="kepala">
+          <button class="btn" id="bPrev" type="button" aria-label="Bulan sebelumnya">◀</button>
+          <div class="judul" id="judul" aria-live="polite"></div>
+          <button class="btn" id="bNext" type="button" aria-label="Bulan berikutnya">▶</button>
+          <button class="btn main" id="bHariIni" type="button">Hari Ini</button>
+        </div>
+        <p class="ringkas" id="ringkas"></p>
+        <div class="hari-nama"><div>Sen</div><div>Sel</div><div>Rab</div><div>Kam</div><div>Jum</div><div>Sab</div><div>Min</div></div>
+        <div class="grid" id="grid"></div>
+        <div class="legenda" id="legenda"></div>
+        <p class="catatan">Libur nasional yang tampil hanya yang tanggalnya tetap setiap tahun. Libur keagamaan yang berubah tiap tahun belum dimasukkan. Panah ← → untuk pindah bulan.</p>
+      </section>
+
+      <aside class="samping">
+        <section class="kartu" aria-label="Catatan tanggal">
+          <h2 id="tglJudul"></h2>
+          <p class="tgl-label" id="tglLabel"></p>
+          <div id="liburBox"></div>
+          <div class="peringatan" id="peringatan">Penyimpanan browser tidak tersedia, catatan akan hilang saat halaman ditutup.</div>
+          <ul class="daftar" id="daftar"></ul>
+          <p class="kosong" id="kosong">Belum ada catatan di tanggal ini.</p>
+          <form id="form" autocomplete="off">
+            <input type="text" id="fJudul" maxlength="80" placeholder="Tulis acara atau tugas..." required aria-label="Judul acara">
+            <input type="time" id="fJam" aria-label="Jam (opsional)">
+            <select id="fKat" aria-label="Kategori"></select>
+            <button class="btn main" type="submit">+ Tambah</button>
+          </form>
+        </section>
+        <section class="kartu" aria-label="Agenda mendatang">
+          <h2>Agenda Mendatang</h2>
+          <ul class="agenda" id="agenda"></ul>
+          <p class="kosong" id="agendaKosong">Tidak ada agenda mendatang.</p>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <footer>© ROBIN · DIBUAT DENGAN SEMANGAT SOUL REAPER</footer>
+
+  <script>
+    // ===== TEMA LATAR (sama seperti portofolio) =====
+    const tema = {
+      senja:  { nama: "Senja Karakura", kanji: "代行", g: "linear-gradient(to top,#ff7b3d,#c2410c 40%,#3b1d5e 100%)", orb: "radial-gradient(circle,#fff3c4 0%,#ffd27a 60%,#ff9a3c 100%)", glow: "#ffb347", city: "#1a0a12", accent: "#ff6a00", spark: "#ffcf8a" },
+      malam:  { nama: "Malam Bersalju", kanji: "月", g: "linear-gradient(to top,#2a4a7a,#10234a 50%,#030818 100%)", orb: "radial-gradient(circle,#ffffff 0%,#dbeafe 70%,#a5c8ff 100%)", glow: "#bcd8ff", city: "#050b1a", accent: "#4da6ff", spark: "#d6e8ff" },
+      sakura: { nama: "Hujan Sakura", kanji: "桜", g: "linear-gradient(to top,#ff9ec4,#a8326b 45%,#2a0b2e 100%)", orb: "radial-gradient(circle,#fff0f6 0%,#ffc2da 70%,#ff8fba 100%)", glow: "#ffb3d1", city: "#1f0720", accent: "#ff5c9e", spark: "#ffd0e3" },
+      es:     { nama: "Istana Es", kanji: "氷", g: "linear-gradient(to top,#b8ecff,#2a8fc7 45%,#062a4d 100%)", orb: "radial-gradient(circle,#ffffff 0%,#e0f7ff 70%,#9fe3ff 100%)", glow: "#aeeaff", city: "#04182e", accent: "#38d4ff", spark: "#ffffff" },
+      soul:   { nama: "Soul Society", kanji: "死神", g: "linear-gradient(to top,#3b1d5e,#1a1040 45%,#050510 100%)", orb: "radial-gradient(circle,#fff6dc 0%,#fff1d0 70%,#ffe2a0 100%)", glow: "#fff1d0", city: "#000000", accent: "#a855f7", spark: "#e0c8ff" },
+      bankai: { nama: "BANKAI!", kanji: "卍解", g: "linear-gradient(to top,#ff7b3d,#7a0b1b 45%,#2b0008 100%)", orb: "radial-gradient(circle,#fffbe0 0%,#ffe9b0 60%,#ffd400 100%)", glow: "#ffd400", city: "#1a0004", accent: "#ffd400", spark: "#ffe28a" }
+    };
+    const urutan = Object.keys(tema);
+    // tema latar tiap bulan (Januari ... Desember)
+    const TEMA_BULAN = ["es", "es", "sakura", "sakura", "senja", "senja", "soul", "bankai", "malam", "malam", "soul", "es"];
+
+    const kota = `<svg class="city" viewBox="0 0 1200 300" preserveAspectRatio="xMidYMax slice" fill="CITYCOLOR">
+      <rect x="0" y="270" width="1200" height="30"/>
+      <path d="M90 270 V190 H130 V270 Z"/><path d="M70 195 Q110 185 150 195 L135 170 H85 Z"/><path d="M85 170 Q110 160 135 170 L125 150 H95 Z"/><path d="M95 150 L110 125 L125 150 Z"/>
+      <path d="M200 270 V215 H420 V270 Z"/><path d="M180 220 Q310 195 440 220 L410 200 H210 Z"/>
+      <path d="M520 270 V160 H580 V270 Z"/><path d="M495 165 Q550 150 605 165 L585 135 H515 Z"/><path d="M512 135 Q550 120 588 135 L575 108 H525 Z"/><path d="M525 108 Q550 95 575 108 L562 82 H538 Z"/><path d="M540 82 L550 50 L560 82 Z"/>
+      <path d="M680 270 V220 H860 V270 Z"/><path d="M660 225 Q770 200 880 225 L850 205 H690 Z"/>
+      <path d="M930 270 V185 H980 V270 Z"/><path d="M910 190 Q955 178 1000 190 L985 165 H925 Z"/><path d="M925 165 Q955 152 985 165 L975 140 H935 Z"/><path d="M938 140 L955 112 L972 140 Z"/>
+      <path d="M1060 270 V225 H1200 V270 Z"/><path d="M1045 230 Q1130 208 1215 230 L1190 212 H1070 Z"/>
+    </svg>`;
+
+    const $ = id => document.getElementById(id);
+    const scene = $("scene");
+    const layers = {};
+    urutan.forEach(k => {
+      const t = tema[k];
+      const d = document.createElement("div");
+      d.className = "layer";
+      d.style.background = t.g;
+      d.innerHTML =
+        '<div class="kanji">' + t.kanji + '</div>' +
+        '<div class="orb" style="background:' + t.orb + ';box-shadow:0 0 40px ' + t.glow + ',0 0 110px ' + t.glow + '"></div>' +
+        kota.replace("CITYCOLOR", t.city);
+      scene.appendChild(d);
+      layers[k] = d;
+    });
+    const sparks = $("sparks");
+    for (let n = 0; n < 30; n++) {
+      const s = document.createElement("div");
+      s.className = "spark";
+      const size = 2 + Math.random() * 4;
+      s.style.width = s.style.height = size + "px";
+      s.style.left = Math.random() * 100 + "%";
+      s.style.animationDuration = (6 + Math.random() * 8) + "s";
+      s.style.animationDelay = (Math.random() * 10) + "s";
+      sparks.appendChild(s);
+    }
+    let aktif = "";
+    function gantiTema(k) {
+      if (k === aktif) return;
+      aktif = k;
+      const t = tema[k];
+      urutan.forEach(n => layers[n].classList.toggle("aktif", n === k));
+      document.documentElement.style.setProperty("--accent", t.accent);
+      document.documentElement.style.setProperty("--spark", t.spark);
+      $("lokasi").textContent = "// " + t.nama;
+    }
+
+    // ===== DATA =====
+    const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+    const HARI = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+    const KATEGORI = [
+      { id: "tugas", nama: "Tugas", warna: "#ffd400" },
+      { id: "ujian", nama: "Ujian", warna: "#ff5a5a" },
+      { id: "acara", nama: "Acara", warna: "#4da6ff" },
+      { id: "pribadi", nama: "Pribadi", warna: "#5be37d" }
+    ];
+    const warnaKat = id => (KATEGORI.find(k => k.id === id) || KATEGORI[2]).warna;
+    // Libur nasional dengan tanggal tetap setiap tahun ("bulan-tanggal")
+    const LIBUR = { "01-01": "Tahun Baru Masehi", "05-01": "Hari Buruh", "06-01": "Hari Lahir Pancasila", "08-17": "Hari Kemerdekaan RI", "12-25": "Hari Natal" };
+
+    const KUNCI = "kalenderBleach";
+    let events = {};
+    let simpanGagal = false;
+    function muat() {
+      try {
+        const o = JSON.parse(localStorage.getItem(KUNCI) || "{}");
+        if (o && typeof o === "object" && !Array.isArray(o)) {
+          Object.keys(o).forEach(k => {
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(k) || !Array.isArray(o[k])) return;
+            const arr = o[k].filter(e => e && typeof e.t === "string" && e.t.trim()).map(e => ({
+              id: String(e.id || Math.random().toString(36).slice(2)), t: e.t.slice(0, 80), jam: /^\d{2}:\d{2}$/.test(e.jam || "") ? e.jam : "",
+              kat: KATEGORI.some(x => x.id === e.kat) ? e.kat : "acara", sel: !!e.sel
+            }));
+            if (arr.length) events[k] = arr;
+          });
+        }
+      } catch (e) { events = {}; }
+    }
+    function simpan() {
+      try { localStorage.setItem(KUNCI, JSON.stringify(events)); simpanGagal = false; }
+      catch (e) { simpanGagal = true; }
+      $("peringatan").style.display = simpanGagal ? "block" : "none";
+    }
+
+    // ===== TANGGAL =====
+    const pad = n => String(n).padStart(2, "0");
+    const kunciTgl = (y, m, d) => y + "-" + pad(m + 1) + "-" + pad(d);
+    const dariKunci = k => { const p = k.split("-"); return new Date(+p[0], +p[1] - 1, +p[2]); };
+    function hariIniKunci() { const n = new Date(); return kunciTgl(n.getFullYear(), n.getMonth(), n.getDate()); }
+    const selisihHari = (a, b) => Math.round((dariKunci(a) - dariKunci(b)) / 86400000);
+    function namaLengkap(k) { const d = dariKunci(k); return HARI[d.getDay()] + ", " + d.getDate() + " " + BULAN[d.getMonth()] + " " + d.getFullYear(); }
+
+    const n0 = new Date();
+    let vY = n0.getFullYear(), vM = n0.getMonth(), pilih = hariIniKunci();
+
+    // ===== RENDER KALENDER =====
+    function urutEvent(a, b) { return (a.jam || "99:99").localeCompare(b.jam || "99:99") || a.t.localeCompare(b.t); }
+    function render() {
+      $("judul").textContent = BULAN[vM] + " " + vY;
+      gantiTema(TEMA_BULAN[vM]);
+      const awal = (new Date(vY, vM, 1).getDay() + 6) % 7;       // Senin = 0
+      const hari = new Date(vY, vM + 1, 0).getDate();
+      const today = hariIniKunci();
+      const grid = $("grid");
+      grid.innerHTML = "";
+      for (let i = 0; i < 42; i++) {
+        const d = new Date(vY, vM, 1 - awal + i);
+        const k = kunciTgl(d.getFullYear(), d.getMonth(), d.getDate());
+        const luar = d.getMonth() !== vM;
+        const lib = LIBUR[pad(d.getMonth() + 1) + "-" + pad(d.getDate())];
+        const ev = (events[k] || []).slice().sort(urutEvent);
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "sel" + (luar ? " luar" : "") + (lib ? " libur" : "") + (i % 7 >= 5 ? " pekan" : "") + (k === today ? " hariini" : "") + (k === pilih ? " pilih" : "");
+        b.setAttribute("aria-label", namaLengkap(k) + (lib ? ", " + lib : "") + (ev.length ? ", " + ev.length + " catatan" : ""));
+        if (k === pilih) b.setAttribute("aria-current", "date");
+        const no = document.createElement("span"); no.className = "no"; no.textContent = d.getDate(); b.appendChild(no);
+        if (ev.length) {
+          const t = document.createElement("span"); t.className = "teks"; t.textContent = ev[0].t; b.appendChild(t);
+          const tt = document.createElement("span"); tt.className = "titik";
+          ev.slice(0, 4).forEach(e => { const i2 = document.createElement("i"); i2.style.background = warnaKat(e.kat); tt.appendChild(i2); });
+          if (ev.length > 4) { const em = document.createElement("em"); em.textContent = "+" + (ev.length - 4); tt.appendChild(em); }
+          b.appendChild(tt);
+        }
+        b.addEventListener("click", () => {
+          pilih = k;
+          if (luar) { vY = d.getFullYear(); vM = d.getMonth(); }
+          render();
+        });
+        grid.appendChild(b);
+      }
+      // ringkasan bulan
+      let total = 0, selesai = 0;
+      Object.keys(events).forEach(k => {
+        if (k.slice(0, 7) !== vY + "-" + pad(vM + 1)) return;
+        events[k].forEach(e => { total++; if (e.sel) selesai++; });
+      });
+      $("ringkas").textContent = total ? total + " catatan bulan ini · " + selesai + " selesai" : "Belum ada catatan bulan ini";
+      renderPanel();
+      renderAgenda();
+    }
+
+    function renderPanel() {
+      const d = dariKunci(pilih);
+      const rel = selisihHari(pilih, hariIniKunci());
+      $("tglJudul").textContent = rel === 0 ? "Hari Ini" : (rel === 1 ? "Besok" : (rel === -1 ? "Kemarin" : "Catatan"));
+      $("tglLabel").textContent = namaLengkap(pilih);
+      const lib = LIBUR[pad(d.getMonth() + 1) + "-" + pad(d.getDate())];
+      $("liburBox").innerHTML = "";
+      if (lib) { const s = document.createElement("span"); s.className = "libur-tag"; s.textContent = "Libur: " + lib; $("liburBox").appendChild(s); }
+      const ul = $("daftar"); ul.innerHTML = "";
+      const ev = (events[pilih] || []).slice().sort(urutEvent);
+      ev.forEach(e => {
+        const li = document.createElement("li");
+        li.style.setProperty("--kc", warnaKat(e.kat));
+        if (e.sel) li.className = "selesai";
+        const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = e.sel; cb.setAttribute("aria-label", "Tandai selesai");
+        cb.addEventListener("change", () => { e.sel = cb.checked; simpan(); render(); });
+        const ju = document.createElement("span"); ju.className = "ju"; ju.textContent = e.t;
+        li.append(cb, ju);
+        if (e.jam) { const j = document.createElement("span"); j.className = "jam"; j.textContent = e.jam; li.appendChild(j); }
+        const x = document.createElement("button"); x.type = "button"; x.textContent = "✕"; x.title = "Hapus"; x.setAttribute("aria-label", "Hapus catatan");
+        x.addEventListener("click", () => {
+          events[pilih] = (events[pilih] || []).filter(z => z.id !== e.id);
+          if (!events[pilih].length) delete events[pilih];
+          simpan(); render();
+        });
+        li.appendChild(x);
+        ul.appendChild(li);
+      });
+      $("kosong").style.display = ev.length ? "none" : "block";
+    }
+
+    function renderAgenda() {
+      const today = hariIniKunci();
+      const daftar = [];
+      Object.keys(events).forEach(k => { if (k >= today) events[k].forEach(e => { if (!e.sel) daftar.push({ k: k, e: e }); }); });
+      daftar.sort((a, b) => a.k.localeCompare(b.k) || urutEvent(a.e, b.e));
+      const ul = $("agenda"); ul.innerHTML = "";
+      daftar.slice(0, 8).forEach(x => {
+        const li = document.createElement("li");
+        li.style.setProperty("--kc", warnaKat(x.e.kat));
+        const r = selisihHari(x.k, today);
+        const rel = document.createElement("span"); rel.className = "rel"; rel.textContent = r === 0 ? "Hari ini" : (r === 1 ? "Besok" : r + " hari lagi");
+        const ju = document.createElement("span"); ju.className = "ju"; ju.textContent = x.e.t + (x.e.jam ? " · " + x.e.jam : "");
+        li.append(rel, ju);
+        li.addEventListener("click", () => { const d = dariKunci(x.k); pilih = x.k; vY = d.getFullYear(); vM = d.getMonth(); render(); });
+        ul.appendChild(li);
+      });
+      $("agendaKosong").style.display = daftar.length ? "none" : "block";
+    }
+
+    // ===== KONTROL =====
+    function geserBulan(n) {
+      const d = new Date(vY, vM + n, 1);
+      vY = d.getFullYear(); vM = d.getMonth();
+      render();
+    }
+    $("bPrev").addEventListener("click", () => geserBulan(-1));
+    $("bNext").addEventListener("click", () => geserBulan(1));
+    $("bHariIni").addEventListener("click", () => { const n = new Date(); vY = n.getFullYear(); vM = n.getMonth(); pilih = hariIniKunci(); render(); });
+    window.addEventListener("keydown", e => {
+      const tag = (e.target && e.target.tagName) || "";
+      if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return;
+      if (e.key === "ArrowLeft") geserBulan(-1);
+      else if (e.key === "ArrowRight") geserBulan(1);
+    });
+
+    $("fKat").innerHTML = KATEGORI.map(k => '<option value="' + k.id + '">' + k.nama + "</option>").join("");
+    $("legenda").innerHTML = KATEGORI.map(k => '<span><i style="background:' + k.warna + '"></i>' + k.nama + "</span>").join("");
+    $("form").addEventListener("submit", e => {
+      e.preventDefault();
+      const t = $("fJudul").value.trim();
+      if (!t) return;
+      const ev = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), t: t.slice(0, 80), jam: $("fJam").value || "", kat: $("fKat").value, sel: false };
+      (events[pilih] = events[pilih] || []).push(ev);
+      $("fJudul").value = ""; $("fJam").value = "";
+      simpan(); render();
+      $("fJudul").focus();
+    });
+
+    // ===== MULAI =====
+    muat();
+    render();
+  </script>
+</body>
+</html>
